@@ -1,16 +1,21 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 
-const fastify = Fastify({
+const app = Fastify({
   logger: true
 });
 
-fastify.get("/", () => {
+app.register(cors, {
+  origin: "*"
+});
+
+app.get("/", () => {
   return { hello: "world" };
 });
 
 try {
-  await fastify.listen({ port: 8080 });
+  await app.listen({ port: 8080 });
 } catch (err) {
-  fastify.log.error(err);
+  app.log.error(err);
   process.exit(1);
 }
