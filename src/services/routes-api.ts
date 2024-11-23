@@ -59,26 +59,30 @@ export class RoutesAPI {
     origin: string,
     destination: string
   ): Promise<RoutesAPIResponseNormalized> {
-    const response = await this.request.post<RoutesAPIResponse>(
-      "https://routes.googleapis.com/directions/v2:computeRoutes",
-      {
-        origin: {
-          address: origin
+    try {
+      const response = await this.request.post<RoutesAPIResponse>(
+        "https://routes.googleapis.com/directions/v2:computeRoutes",
+        {
+          origin: {
+            address: origin
+          },
+          destination: {
+            address: destination
+          }
         },
-        destination: {
-          address: destination
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-FieldMask": this.googleFieldMask,
+            "X-Goog-Api-Key": env.GOOGLE_API_KEY
+          }
         }
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-FieldMask": this.googleFieldMask,
-          "X-Goog-Api-Key": env.GOOGLE_API_KEY
-        }
-      }
-    );
+      );
 
-    return this.normalizeResponse(response.data);
+      return this.normalizeResponse(response.data);
+    } catch (err) {
+      throw new Error(`Fail while trying to estimate the route: ${err}`);
+    }
   }
 
   private getAvailableDrivers(distanceInKm: number) {
