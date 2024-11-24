@@ -17,4 +17,17 @@ describe("RoutesAPI", () => {
 
     expect(response).toEqual(responseFixtureNormalized);
   });
+
+  it("Should return an ERROR when Routes API service fail", async () => {
+    const origin = "Ibirapuera, São Paulo - SP";
+    const destination = "Liberdade, São Paulo - SP";
+
+    axios.post = jest.fn().mockRejectedValue("Generic error");
+
+    const routesAPI = new RoutesAPI(axios);
+
+    await expect(routesAPI.estimateRide(origin, destination)).rejects.toThrow(
+      "Fail while trying to estimate the route: Generic error"
+    );
+  });
 });
