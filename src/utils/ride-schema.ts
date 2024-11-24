@@ -3,9 +3,9 @@ import { z } from "zod";
 export const estimateRideSchema = z
   .object({
     customer_id: z
-      .number({
+      .string({
         required_error: "customer id cannot be empty",
-        invalid_type_error: "customer id must be a number"
+        invalid_type_error: "customer id must be a string"
       })
       .min(1),
     origin: z
@@ -25,3 +25,5 @@ export const estimateRideSchema = z
     message: "origin and destination cannot be the same",
     path: ["destination"]
   });
+
+export const confirmRideSchema = z.object({});
