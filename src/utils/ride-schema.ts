@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const estimateRideSchema = z
   .object({
-    customerId: z
+    customer_id: z
       .number({
         required_error: "customer id cannot be empty",
         invalid_type_error: "customer id must be a number"
