@@ -63,12 +63,9 @@ export class RoutesAPI {
       const response = await this.request.post<RoutesAPIResponse>(
         "https://routes.googleapis.com/directions/v2:computeRoutes",
         {
-          origin: {
-            address: origin
-          },
-          destination: {
-            address: destination
-          }
+          origin: { address: origin },
+          destination: { address: destination },
+          travelMode: "DRIVE"
         },
         {
           headers: {
