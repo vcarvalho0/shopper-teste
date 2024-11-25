@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { registerRoutes } from "./routes";
 
 const app = Fastify({
   logger: true
@@ -8,6 +9,8 @@ const app = Fastify({
 app.register(cors, {
   origin: "*"
 });
+
+app.register(registerRoutes);
 
 app.get("/", () => {
   return { hello: "world" };
