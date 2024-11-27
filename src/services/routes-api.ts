@@ -1,53 +1,6 @@
 import axios from "axios";
-import { env } from "@/env";
-import { drivers } from "./drivers.json";
-
-interface DriverRating {
-  rating: number;
-  comment: string;
-}
-
-interface DriverOptions {
-  id: number;
-  name: string;
-  description: string;
-  vehicle: string;
-  review: DriverRating;
-  value: number;
-}
-
-interface LatLng {
-  latitude: number;
-  longitude: number;
-}
-
-interface Location {
-  latLng: LatLng;
-}
-
-interface Leg {
-  startLocation: Location;
-  endLocation: Location;
-}
-
-interface Route {
-  legs: Leg[];
-  distanceMeters: number;
-  duration: string;
-}
-
-interface RoutesAPIResponse {
-  routes: Route[];
-}
-
-interface RoutesAPIResponseNormalized {
-  origin: LatLng;
-  destination: LatLng;
-  distance: number;
-  duration: string;
-  options: DriverOptions[];
-  routeResponse: RoutesAPIResponse;
-}
+import { prisma } from "@/database";
+import { RoutesAPIResponse, RoutesResponseNormalized } from "@/utils/types";
 
 export class RoutesAPI {
   readonly googleFieldMask =
@@ -58,7 +11,7 @@ export class RoutesAPI {
   public async estimateRide(
     origin: string,
     destination: string
-  ): Promise<RoutesAPIResponseNormalized> {
+  ): Promise<RoutesResponseNormalized> {
     try {
       const response = await this.request.post<RoutesAPIResponse>(
         "https://routes.googleapis.com/directions/v2:computeRoutes",
@@ -71,7 +24,7 @@ export class RoutesAPI {
           headers: {
             "Content-Type": "application/json",
             "X-Goog-FieldMask": this.googleFieldMask,
-            "X-Goog-Api-Key": env.GOOGLE_API_KEY
+            "X-Goog-Api-Key": process.env.GOOGLE_API_KEY
           }
         }
       );
@@ -82,9 +35,17 @@ export class RoutesAPI {
     }
   }
 
-  private getAvailableDrivers(distanceInKm: number) {
+  private async getAvailableDrivers(distanceInKm: number) {
+    const drivers = await prisma.drivers.findMany({
+      where: {
+        minKm: {
+          lte: distanceInKm
+        }
+      },
+      include: { review: true }
+    });
+
     return drivers
-      .filter((driver) => distanceInKm >= driver.minKm)
       .map((driver) => ({
         id: driver.id,
         name: driver.name,
@@ -94,7 +55,10 @@ export class RoutesAPI {
           rating: driver.review.rating,
           comment: driver.review.comment
         },
-        value: this.calculateDriverPrice(driver.pricePerKm, distanceInKm)
+        value: this.calculateDriverPrice(
+          driver.pricePerKm.toNumber(),
+          distanceInKm
+        )
       }))
       .sort((a, b) => a.value - b.value);
   }
@@ -106,12 +70,12 @@ export class RoutesAPI {
     return Number((pricePerKm * distanceInKm).toFixed(2));
   }
 
-  private normalizeResponse(
+  private async normalizeResponse(
     data: RoutesAPIResponse
-  ): RoutesAPIResponseNormalized {
+  ): Promise<RoutesResponseNormalized> {
     const route = data.routes[0];
     const distanceInKm = route.distanceMeters / 1000;
-    const durationInSeconds = parseInt(route.duration.replace("s", ""));
+    const durationInSeconds = route.duration.replace("s", "");
 
     return {
       origin: {
@@ -122,9 +86,9 @@ export class RoutesAPI {
         latitude: route.legs[0].endLocation.latLng.latitude,
         longitude: route.legs[0].endLocation.latLng.longitude
       },
-      distance: distanceInKm,
-      duration: `${Math.floor(durationInSeconds / 60)} minutos`,
-      options: this.getAvailableDrivers(distanceInKm),
+      distance: route.distanceMeters,
+      duration: `${Math.floor(parseInt(durationInSeconds) / 60)} minutos`,
+      options: await this.getAvailableDrivers(distanceInKm),
       routeResponse: data
     };
   }

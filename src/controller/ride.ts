@@ -1,14 +1,14 @@
 import { RoutesAPI } from "@/services/routes-api";
-import { drivers } from "@/services/drivers.json";
 import {
   confirmRideSchema,
   estimateRideSchema,
   getRideSchema
-} from "@/utils/ride-schema";
+} from "@/utils/schemas/ride-schema";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "@/database";
-import { RidesMapper, Rides } from "@/utils/ride-mapper";
-import z from "zod";
+import { RidesMapper } from "@/utils/mappers/ride-mapper";
+import { z } from "zod";
+import { Rides } from "@/utils/types";
 
 const routesAPI = new RoutesAPI();
 
@@ -59,9 +59,9 @@ export class RideController {
         value
       } = confirmRideSchema.parse(req.body);
 
-      const findDriver = drivers.find(
-        (data) => data.id === driver.id && data.name === driver.name
-      );
+      const findDriver = await prisma.drivers.findFirst({
+        where: { id: driver.id, name: driver.name }
+      });
 
       if (!findDriver) {
         return reply.code(404).send({
@@ -82,11 +82,11 @@ export class RideController {
           customer_id,
           origin,
           destination,
+          value,
           distance,
           duration,
-          driverId: driver.id,
-          driverName: driver.name,
-          value
+          date: new Date(),
+          driverId: findDriver.id
         }
       });
 
@@ -115,18 +115,21 @@ export class RideController {
         customer_id: req.params.customerId,
         driverId
       },
-      orderBy: {
-        date: "desc"
-      }
+      include: { driver: true },
+      orderBy: { date: "desc" }
     });
 
-    const findDriver = drivers.find((data) => data.id === driverId);
-
-    if (driverId && !findDriver) {
-      return reply.code(400).send({
-        error_message: "INVALID_DRIVER",
-        error_description: "the specified driver is not valid"
+    if (driverId) {
+      const findDriver = await prisma.drivers.findUnique({
+        where: { id: driverIdParam }
       });
+
+      if (!findDriver) {
+        return reply.code(400).send({
+          error_message: "INVALID_DRIVER",
+          error_description: "the specified driver is not valid"
+        });
+      }
     }
 
     if (!rides.length) {
