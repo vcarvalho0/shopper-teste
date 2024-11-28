@@ -2,6 +2,13 @@ import { prisma } from "../src/database";
 import { Decimal } from "@prisma/client/runtime/library";
 
 async function seed() {
+  const existingDrivers = await prisma.drivers.count();
+
+  if (existingDrivers > 0) {
+    console.log("Database already seeded. Skipping seeding.");
+    return;
+  }
+
   const homerReview = await prisma.review.create({
     data: {
       rating: 2,

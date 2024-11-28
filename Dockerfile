@@ -25,9 +25,6 @@ COPY --from=build /app/prisma /app/prisma
 
 RUN npm install -g tsx
 
-# Run prisma generate again in production
-RUN npx prisma generate
-
 EXPOSE 8080
 
 CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && npm run start"]

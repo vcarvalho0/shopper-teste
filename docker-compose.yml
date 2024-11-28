@@ -36,6 +36,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        GOOGLE_API_KEY: ${GOOGLE_API_KEY}
     environment:
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
     env_file:
